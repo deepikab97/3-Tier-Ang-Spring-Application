@@ -1,26 +1,46 @@
-version: '3'
+version: '3.7'
 services:
   mysql-standalone:
     image: mysql:latest
     container_name: mysql-standalone
     environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=employeedb
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: employeedb
+    ports:
+      - 3311:3306
+    volumes:
+      - deepikabVolume:/var/lib/mysql
+
+    networks:
+      - deepikabNetwork
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "mysql-standalone"]  # Or use the hostname of your MySQL container
+      interval: 30s
+      timeout: 30s
+      retries: 5
+
+
   springboot-docker-container:
-    image: springapp
+    #image: springapp
     container_name: springboot-docker-container
     ports:
-      - 8080:8080
-    command: ["sh", "-c", "while ! nc -z mysql-standalone 3306; do sleep 1; done && java -jar app.jar"]
+      - 8083:8080
+    restart: always
+        #command: ["sh", "-c", "while ! nc -z mysql-standalone 3306; do sleep 1; done && java -jar app.jar"]
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-standalone:3306/employeedb?useSSL=false&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASS=root
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-standalone:3311/employeedb?useSSL=false&autoReconnect=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASS: root
     build:
       context: ./springboot-backend/
       dockerfile: Dockerfile
     depends_on:
       - mysql-standalone
+    networks:
+      - deepikabNetwork
+
+
+
   angular-docker-container:
     image: angularapp
     container_name: angular-docker-container
@@ -29,3 +49,14 @@ services:
     build:
       context: ./angular app/app/
       dockerfile: Dockerfile
+    networks:
+      - deepikabNetwork
+
+
+
+networks:
+  deepikabNetwork:
+
+
+volumes:
+  deepikabVolume:
